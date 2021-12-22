@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<!--
+  ~ Copyright (c) 2021. All rights reserved.
+  ~ @author: Volodymyr Hryvinskyi <mailto:volodymyr@hryvinskyi.com>
+  -->
+
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <preference for="Hryvinskyi\SeoCriticalCssFrontendUi\Model\GetCriticalCssByRequestInterface"
+                type="Hryvinskyi\SeoCriticalCssFrontendUi\Model\GetCriticalCssByRequest"/>
+
+    <!-- Debugger -->
+    <virtualType name="Hryvinskyi\SeoCriticalCssFrontendUi\Model\Handler" type="Hryvinskyi\Logger\Model\Handler">
+        <arguments>
+            <argument name="config" xsi:type="object">Hryvinskyi\SeoCriticalCss\Model\Config</argument>
+            <argument name="fileName" xsi:type="string">/var/log/Hryvinskyi/critical_css.log</argument>
+        </arguments>
+    </virtualType>
+
+    <virtualType name="Hryvinskyi\SeoCriticalCssFrontendUi\Model\Logger" type="Hryvinskyi\Logger\Model\Logger">
+        <arguments>
+            <argument name="name" xsi:type="string">SeoCriticalCssFrontendUi</argument>
+            <argument name="handlers" xsi:type="array">
+                <item name="error" xsi:type="object">Hryvinskyi\SeoCriticalCssFrontendUi\Model\Handler</item>
+            </argument>
+        </arguments>
+    </virtualType>
+
+    <type name="Hryvinskyi\SeoCriticalCssFrontendUi\Plugin\ReplaceGlobalCriticalCssToPerPage">
+        <arguments>
+            <argument name="logger" xsi:type="object">Hryvinskyi\SeoCriticalCssFrontendUi\Model\Logger</argument>
+        </arguments>
+    </type>
+</config>
