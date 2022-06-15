@@ -12,6 +12,9 @@ use Hryvinskyi\SeoCriticalCss\Model\ConfigInterface;
 use Hryvinskyi\SeoApi\Api\CheckPatternInterface;
 use Hryvinskyi\SeoApi\Api\GetBaseUrlInterface;
 use Magento\Framework\App\HttpRequestInterface;
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\View\Asset\File\NotFoundException;
+use Magento\Framework\View\Asset\Repository;
 
 class GetCriticalCssByRequest implements GetCriticalCssByRequestInterface
 {
@@ -24,10 +27,16 @@ class GetCriticalCssByRequest implements GetCriticalCssByRequestInterface
      * @var CheckPatternInterface
      */
     private $checkPattern;
+
     /**
      * @var GetBaseUrlInterface
      */
     private $baseUrl;
+
+    /**
+     * @var Repository
+     */
+    private $assetRepo;
 
     /**
      * @param ConfigInterface $config
@@ -37,11 +46,13 @@ class GetCriticalCssByRequest implements GetCriticalCssByRequestInterface
     public function __construct(
         ConfigInterface $config,
         CheckPatternInterface $checkPattern,
-        GetBaseUrlInterface $baseUrl
+        GetBaseUrlInterface $baseUrl,
+        Repository $assetRepo
     ) {
         $this->config = $config;
         $this->checkPattern = $checkPattern;
         $this->baseUrl = $baseUrl;
+        $this->assetRepo = $assetRepo;
     }
 
     /**
@@ -49,17 +60,28 @@ class GetCriticalCssByRequest implements GetCriticalCssByRequestInterface
      */
     public function execute(HttpRequestInterface $request): ?string
     {
-        $fullAction = $request->getFullActionName();
-        $criticalCss = $this->config->getCriticalCss();
-
-        foreach ($criticalCss as $robot) {
-            if ($this->checkPattern->execute($fullAction, $robot['pattern'])
-                || $this->checkPattern->execute($this->baseUrl->execute(), $robot['pattern'])
-            ) {
-                return $robot['critical_css'];
-            }
+        $content = null;
+        try {
+            $fullAction = $request->getFullActionName();
+            $type = $request->getFullActionName('_');
+            $asset = $this->assetRepo->createAsset('css/' . $type . '_' . 'critical.css', ['_secure' => 'false']);
+            $content = $asset->getContent();
+        } catch (LocalizedException | NotFoundException $e) {
         }
 
-        return null;
+        try {
+            $criticalCss = $this->config->getCriticalCss();
+            foreach ($criticalCss as $robot) {
+                if (
+                    $this->checkPattern->execute($fullAction, $robot['pattern'])
+                    || $this->checkPattern->execute($this->baseUrl->execute(), $robot['pattern'])
+                ) {
+                    $content = $robot['critical_css'];
+                }
+            }
+        } catch (\Throwable $e) {
+        }
+
+        return $content;
     }
 }
