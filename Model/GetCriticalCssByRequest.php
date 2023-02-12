@@ -61,14 +61,19 @@ class GetCriticalCssByRequest implements GetCriticalCssByRequestInterface
     public function execute(HttpRequestInterface $request): ?string
     {
         $content = null;
+        $fullAction = $request->getFullActionName();
+        
         try {
-            $fullAction = $request->getFullActionName();
             $type = $request->getFullActionName('_');
             $asset = $this->assetRepo->createAsset('css/' . $type . '_' . 'critical.css', ['_secure' => 'false']);
             $content = $asset->getContent();
         } catch (LocalizedException | NotFoundException $e) {
         }
 
+        if ($this->config->isEnabled() === false) {
+            return $content;
+        }
+        
         try {
             $criticalCss = $this->config->getCriticalCss();
             foreach ($criticalCss as $robot) {
